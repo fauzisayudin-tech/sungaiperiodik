@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Media Interaktif Klasifikasi Sungai</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @keyframes flow {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        .river-flow {
+            animation: flow 3s linear infinite;
+        }
+        .river-bed {
+            background: linear-gradient(to bottom, #8B4513 0%, #A0522D 100%);
+        }
+        .water {
+            background: rgba(30, 144, 255, 0.7);
+        }
+        .dry-bed {
+            background: #D2B48C;
+        }
+        .card-active {
+            border-color: #3B82F6;
+            background-color: #EFF6FF;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans">
+
+    <div class="max-w-4xl mx-auto p-4 md:p-8">
+        <header class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-blue-800">Klasifikasi Sungai Berdasarkan Debit Air</h1>
+            <p class="text-slate-600 mt-2">Pelajari perbedaan antara sungai Episodik, Periodik, dan Ephemeral.</p>
+        </header>
+
+        <!-- Main Interaction Area -->
+        <div class="bg-white rounded-2xl shadow-xl overflow-hidden mb-8">
+            <!-- Animation Stage -->
+            <div id="visualizer" class="h-64 relative border-b border-slate-200 overflow-hidden bg-sky-50">
+                <!-- Sky & Environment -->
+                <div id="weather-icon" class="absolute top-4 right-4 text-4xl">☀️</div>
+                <div class="absolute top-10 left-10 text-slate-400 font-bold opacity-20 text-5xl">LANSEKAP</div>
+                
+                <!-- River Bed -->
+                <div class="absolute bottom-0 w-full h-32 river-bed flex flex-col justify-end">
+                    <div id="river-surface" class="w-full h-0 transition-all duration-1000 ease-in-out relative overflow-hidden">
+                        <div class="water w-full h-full">
+                            <div class="river-flow absolute top-0 left-0 w-full h-full opacity-30 flex">
+                                <div class="w-1/2 h-full border-r border-white border-dashed"></div>
+                                <div class="w-1/2 h-full border-r border-white border-dashed"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Rain Overlay -->
+                <div id="rain-effect" class="hidden absolute inset-0 pointer-events-none bg-blue-900/10">
+                    <div class="w-full h-full bg-[radial-gradient(circle_at_center,_transparent_0%,_rgba(0,0,0,0.1)_100%)]"></div>
+                </div>
+            </div>
+
+            <!-- Controls -->
+            <div class="p-6">
+                <div class="flex flex-wrap gap-4 justify-center mb-6">
+                    <button onclick="changeSeason('dry')" id="btn-dry" class="px-6 py-2 rounded-full bg-orange-100 text-orange-700 font-semibold hover:bg-orange-200 transition">Musim Kemarau ☀️</button>
+                    <button onclick="changeSeason('wet')" id="btn-wet" class="px-6 py-2 rounded-full bg-blue-100 text-blue-700 font-semibold hover:bg-blue-200 transition">Musim Hujan 🌧️</button>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <!-- Episodik -->
+                    <div id="card-episodik" onclick="selectType('episodik')" class="cursor-pointer border-2 border-slate-200 p-4 rounded-xl hover:shadow-md transition">
+                        <h3 class="font-bold text-lg text-blue-700">Episodik</h3>
+                        <p class="text-xs text-slate-500 mb-2">(Intermittent)</p>
+                        <p class="text-sm">Air mengalir saat musim hujan, kering saat kemarau.</p>
+                    </div>
+
+                    <!-- Periodik -->
+                    <div id="card-periodik" onclick="selectType('periodik')" class="cursor-pointer border-2 border-slate-200 p-4 rounded-xl hover:shadow-md transition">
+                        <h3 class="font-bold text-lg text-blue-700">Periodik</h3>
+                        <p class="text-xs text-slate-500 mb-2">(Seasonal)</p>
+                        <p class="text-sm">Air mengalir sepanjang tahun, tapi debit kecil di musim kemarau.</p>
+                    </div>
+
+                    <!-- Ephemeral -->
+                    <div id="card-ephemeral" onclick="selectType('ephemeral')" class="cursor-pointer border-2 border-slate-200 p-4 rounded-xl hover:shadow-md transition">
+                        <h3 class="font-bold text-lg text-blue-700">Ephemeral</h3>
+                        <p class="text-xs text-slate-500 mb-2">(Short-lived)</p>
+                        <p class="text-sm">Hanya ada air saat terjadi hujan lebat, lalu kering kembali.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Info Details -->
+        <div id="info-panel" class="bg-white p-6 rounded-2xl shadow-md hidden">
+            <h2 id="info-title" class="text-2xl font-bold text-blue-800 mb-4">Pilih jenis sungai di atas</h2>
+            <div class="space-y-4">
+                <div class="flex items-start gap-3">
+                    <div class="bg-blue-100 p-2 rounded-lg text-blue-600">💧</div>
+                    <div>
+                        <p class="font-bold">Sumber Air:</p>
+                        <p id="info-source" class="text-slate-600">...</p>
+                    </div>
+                </div>
+                <div class="flex items-start gap-3">
+                    <div class="bg-blue-100 p-2 rounded-lg text-blue-600">📊</div>
+                    <div>
+                        <p class="font-bold">Karakteristik Debit:</p>
+                        <p id="info-debit" class="text-slate-600">...</p>
+                    </div>
+                </div>
+                <div class="flex items-start gap-3">
+                    <div class="bg-blue-100 p-2 rounded-lg text-blue-600">📍</div>
+                    <div>
+                        <p class="font-bold">Contoh Wilayah:</p>
+                        <p id="info-example" class="text-slate-600">...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quiz Section -->
+        <div class="mt-12 bg-slate-800 text-white p-8 rounded-2xl shadow-lg">
+            <h2 class="text-xl font-bold mb-4">Uji Pemahaman 🧠</h2>
+            <div id="quiz-container">
+                <p id="quiz-question" class="text-lg mb-6">Manakah jenis sungai yang memiliki air hanya sesaat setelah hujan turun di daerah gurun?</p>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <button onclick="checkAnswer('episodik')" class="bg-slate-700 hover:bg-blue-600 p-3 rounded-lg border border-slate-600 transition">Episodik</button>
+                    <button onclick="checkAnswer('periodik')" class="bg-slate-700 hover:bg-blue-600 p-3 rounded-lg border border-slate-600 transition">Periodik</button>
+                    <button onclick="checkAnswer('ephemeral')" class="bg-slate-700 hover:bg-blue-600 p-3 rounded-lg border border-slate-600 transition">Ephemeral</button>
+                </div>
+                <p id="quiz-feedback" class="mt-6 font-semibold hidden"></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentType = '';
+        let currentSeason = 'dry';
+
+        const data = {
+            episodik: {
+                title: "Sungai Episodik (Intermittent)",
+                source: "Air hujan yang meresap dan aliran permukaan (run-off).",
+                debit: "Memiliki air yang banyak saat musim hujan, namun kering kerontang atau menjadi aliran kecil di musim kemarau karena tidak memiliki pasokan air tanah yang stabil.",
+                example: "Banyak ditemukan di daerah Nusa Tenggara Timur (NTT) Indonesia.",
+                wetHeight: "h-24",
+                dryHeight: "h-2"
+            },
+            periodik: {
+                title: "Sungai Periodik (Seasonal)",
+                source: "Air hujan dan mata air (air tanah).",
+                debit: "Aliran air tersedia sepanjang tahun. Di musim hujan debitnya sangat melimpah, sementara di musim kemarau debitnya berkurang drastis namun tidak pernah benar-benar kering.",
+                example: "Sungai Bengawan Solo di Jawa, Sungai Progo di Yogyakarta.",
+                wetHeight: "h-32",
+                dryHeight: "h-12"
+            },
+            ephemeral: {
+                title: "Sungai Ephemeral (Sesaat)",
+                source: "Hanya dari air hujan langsung (curahan).",
+                debit: "Sangat singkat. Air hanya ada beberapa jam atau beberapa hari setelah hujan lebat terjadi. Setelah itu, air akan hilang melalui penguapan atau infiltrasi cepat ke tanah.",
+                example: "Wadi di daerah gurun Timur Tengah atau sungai di daerah karst yang sangat porous.",
+                wetHeight: "h-16",
+                dryHeight: "h-0"
+            }
+        };
+
+        function selectType(type) {
+            currentType = type;
+            
+            // UI Updates
+            document.querySelectorAll('[id^="card-"]').forEach(el => el.classList.remove('card-active', 'ring-2', 'ring-blue-500'));
+            document.getElementById(`card-${type}`).classList.add('card-active', 'ring-2', 'ring-blue-500');
+            
+            document.getElementById('info-panel').classList.remove('hidden');
+            document.getElementById('info-title').innerText = data[type].title;
+            document.getElementById('info-source').innerText = data[type].source;
+            document.getElementById('info-debit').innerText = data[type].debit;
+            document.getElementById('info-example').innerText = data[type].example;
+
+            updateVisuals();
+        }
+
+        function changeSeason(season) {
+            currentSeason = season;
+            
+            // Button Styles
+            document.getElementById('btn-dry').className = season === 'dry' ? 'px-6 py-2 rounded-full bg-orange-500 text-white font-semibold' : 'px-6 py-2 rounded-full bg-orange-100 text-orange-700 font-semibold';
+            document.getElementById('btn-wet').className = season === 'wet' ? 'px-6 py-2 rounded-full bg-blue-500 text-white font-semibold' : 'px-6 py-2 rounded-full bg-blue-100 text-blue-700 font-semibold';
+
+            // Icons & Effects
+            document.getElementById('weather-icon').innerText = season === 'dry' ? '☀️' : '🌧️';
+            document.getElementById('rain-effect').classList.toggle('hidden', season === 'dry');
+            
+            updateVisuals();
+        }
+
+        function updateVisuals() {
+            const surface = document.getElementById('river-surface');
+            if (!currentType) return;
+
+            const height = currentSeason === 'wet' ? data[currentType].wetHeight : data[currentType].dryHeight;
+            
+            // Clear existing height classes
+            surface.className = "w-full transition-all duration-1000 ease-in-out relative overflow-hidden";
+            surface.classList.add(height);
+        }
+
+        function checkAnswer(answer) {
+            const feedback = document.getElementById('quiz-feedback');
+            feedback.classList.remove('hidden');
+            
+            if (answer === 'ephemeral') {
+                feedback.innerText = "Benar! ✅ Ephemeral berasal dari kata Yunani yang berarti 'bertahan hanya sehari'.";
+                feedback.className = "mt-6 font-semibold text-green-400";
+            } else {
+                feedback.innerText = "Belum tepat. ❌ Coba perhatikan lagi: Episodik kering di kemarau, Periodik tetap ada air tapi kecil, Ephemeral hanya ada air 'sesaat' setelah hujan.";
+                feedback.className = "mt-6 font-semibold text-red-400";
+            }
+        }
+
+        // Initialize
+        window.onload = () => {
+            selectType('periodik');
+            changeSeason('dry');
+        };
+    </script>
+</body>
+</html>
